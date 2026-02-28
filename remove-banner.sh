@@ -5,25 +5,31 @@
 ZSHRC="$HOME/.zshrc"
 BACKUP="$HOME/.zshrc.backup.$(date +%Y%m%d_%H%M%S)"
 
-# Backup original file
-echo "Backing up .zshrc to $BACKUP..."
-cp "$ZSHRC" "$BACKUP"
+# Validasi file exists
+if [ ! -f "$ZSHRC" ]; then
+    echo "Error: $ZSHRC tidak ditemukan!"
+    exit 1;
+fi
 
-# Remove the banner section using sed
-# This removes from "# CPA Centered Figlet Banner + Spinner" to the closing "fi"
+echo "Backing up .zshrc to $BACKUP..."
+cp "$ZSHRC" "$BACKUP" || { echo "Backup failed"; exit 1; }
+
 echo "Removing banner section..."
 
-# Create a temporary file
-TEMP_FILE=$(mktemp)
+TEMP_FILE=$(mktemp) || { echo "Failed to create temp file"; exit 1; }
 
-# Use awk to remove the banner block
 awk '
 /^# CPA Centered Figlet Banner \+ Spinner$/ { skip=1; next }
-skip && /^fi$/ && !/echo/ { skip=0; next }
+skip && /^fi$/ { skip=0; next }
 !skip { print }
 ' "$ZSHRC" > "$TEMP_FILE"
 
-# Replace original file
+if [ ! -s "$TEMP_FILE" ]; then
+    echo "Error: Filter hasil kosong, membatalkan..."
+    rm "$TEMP_FILE"
+    exit 1;
+fi
+
 mv "$TEMP_FILE" "$ZSHRC"
 
 echo "Banner removed successfully!"
